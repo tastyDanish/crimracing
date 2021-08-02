@@ -18,14 +18,13 @@ result = []
 distance = 100
 config = {
     'token': '',
-    'racemaster': ''
+    'organizer': ''
 }
 
 with open('token.json') as f:
     configs = json.load(f)
-    config['racemaster'] = configs['racemaster']
+    config['organizer'] = configs['organizer']
     config['token'] = configs['token']
-    print(config['racemaster'])
 
 
 async def race_result(message):
@@ -70,13 +69,16 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    print(str(message.author))
-
     if message.content.startswith('$hello'):
         await message.channel.send('Hello {author}!'.format(author=message.author))
 
     if message.content.startswith('!crimracing add'):
-        racers[message.author] = [message.content.split(' ')[2], 0]
+        emoji = message.content.split(' ')[2]
+        if not emoji.startswith(':') and not emoji.endswith(':'):
+            await message.channel.send(f'{emoji} is not an emoji - try again')
+        if emoji in racers.items():
+            await message.channel.send(f'{emoji} is already taken. Try another one')
+        racers[message.author] = [emoji, 0]
         await message.channel.send(f'I have added {racers[message.author][0]} for participant {message.author}')
 
     if message.content.startswith('!crimracing describe'):
@@ -89,12 +91,12 @@ async def on_message(message):
             say += f"{key}'s racer is {item[0]}\n"
         await message.channel.send(say)
 
-    if message.content.startswith('!crimracing reset') and str(message.author) == config['racemaster']:
+    if message.content.startswith('!crimracing reset') and str(message.author) == config['organizer']:
         racers.clear()
         result.clear()
         await message.channel.send('I have cleared the racers and the results')
 
-    if message.content.startswith('!crimracing start') and str(message.author) == config['racemaster']:
+    if message.content.startswith('!crimracing start') and str(message.author) == config['organizer']:
         await race_loop(message)
 
     if message.content.startswith('!crimracing result'):
