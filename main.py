@@ -50,7 +50,6 @@ async def race_loop(message):
     while True:
         out = f'\n╔{"═" * distance}|\n'
         round_winners = {}
-        i = 80
         for key, item in racers.items():
             crit_message = ''
             # check if past the line
@@ -71,13 +70,12 @@ async def race_loop(message):
 
             # create racer drawing
             out += f"╟{'─' * item[1]}{item[0]}{crit_message}\n"
-            # item[1] += i
-            # i += 1
 
         out += f'╚{"═" * distance}|'
         await message.channel.send(out)
         sleep(.5)
 
+        # sort the round winners by final distance. The winner is whoever made the farther distance
         sorted_winners = {k: v for k, v in sorted(round_winners.items(), key=lambda x: x[1], reverse=True)}
         for winner, value in sorted_winners.items():
             result.append([winner, value])
@@ -91,6 +89,7 @@ async def on_message(message):
     if message.author == client.user:
         return
 
+    # add a racer to the race
     if message.content.startswith('!crimracing add'):
         split = message.content.split(' ')[2]
         if len(split) < 3:
@@ -103,6 +102,7 @@ async def on_message(message):
         racers[message.author] = [emoji, 0]
         await message.channel.send(f'I have added {racers[message.author][0]} for participant {message.author}')
 
+    # show race participants
     if message.content.startswith('!crimracing describe'):
         say = ''
         if len(racers.keys()) == 0:
@@ -111,20 +111,24 @@ async def on_message(message):
             say += f"{item[0]}: {key}\n"
         await message.channel.send(say)
 
+    # reset the race
     if message.content.startswith('!crimracing reset') and str(message.author) == config['organizer']:
         racers.clear()
         result.clear()
         await message.channel.send('I have cleared the racers and the results')
 
+    # race again
     if message.content.startswith('!crimracing again') and str(message.author) == config['organizer']:
         result.clear()
         await race_loop(message)
 
+    # start the race
     if message.content.startswith('!crimracing start') and str(message.author) == config['organizer']:
         if len(result) == len(racers.keys()):
             await message.channel.send('Reset the race or run the again command to race again')
         await race_loop(message)
 
+    # just get the results
     if message.content.startswith('!crimracing result'):
         await race_result(message)
 
