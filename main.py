@@ -91,7 +91,7 @@ async def on_message(message):
 
     # add a racer to the race
     if message.content.startswith('!crimracing add'):
-        split = message.content.split(' ')[2]
+        split = message.content.split(' ')
         if len(split) < 3:
             await message.channel.send('I did not understand that add request')
             return
