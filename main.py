@@ -66,6 +66,7 @@ async def race_loop(message):
 
 @client.event
 async def on_message(message):
+    global lock
     if message.author == client.user:
         return
 
@@ -97,7 +98,10 @@ async def on_message(message):
         await message.channel.send('I have cleared the racers and the results')
 
     if message.content.startswith('!crimracing start') and str(message.author) == config['organizer']:
+        global lock
+        lock = True
         await race_loop(message)
+        lock = False
 
     if message.content.startswith('!crimracing result'):
         await race_result(message)
