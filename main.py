@@ -29,7 +29,7 @@ with open('token.json') as f:
 async def race_result(message):
     winners = 'THE RESULT OF THE RACE:\n'
     for i, r in enumerate(result):
-        winners += f'{i + 1}: {racers[r][0]} {r}\n'
+        winners += f'{i + 1}: {racers[r[0]][0]} {r[0]} (tiebreaker distance {r[1]})\n'
     await message.channel.send(winners)
 
 
@@ -40,24 +40,47 @@ async def race_loop(message):
     sleep(.5)
     await message.channel.send('GO')
 
+    # create starting lineup
+    start = f'\n╔{"═" * distance}|\n'
+    for key, item in racers.items():
+        start += f"╟{'─' * item[1]}{item[0]}\n"
+    start += f'╚{"═" * distance}|'
+    await message.channel.send(start)
+
     while True:
         out = f'\n╔{"═" * distance}|\n'
-        round_winners = []
+        round_winners = {}
+        i = 80
         for key, item in racers.items():
-            out += f"╟{'─' * item[1]}{item[0]}\n"
+            crit_message = ''
+            # check if past the line
             if item[1] >= distance:
-                if key not in result:
-                    round_winners.append(key)
+                if key not in [x[0] for x in result]:
+                    round_winners[key] = item[1]
+                item[1] = distance
             else:
-                item[1] += random.randint(1, 5)
-                if item[1] >= distance:
-                    item[1] = distance
+                # calculate velocity
+                crit = random.randint(1, 20)
+                if crit == 1:
+                    crit_message = '*trips*'
+                elif crit == 20:
+                    crit_message = '*sudden burst of speed*'
+                    item[1] += 8
+                else:
+                    item[1] += random.randint(1, 5)
+
+            # create racer drawing
+            out += f"╟{'─' * item[1]}{item[0]}{crit_message}\n"
+            # item[1] += i
+            # i += 1
+
         out += f'╚{"═" * distance}|'
         await message.channel.send(out)
         sleep(.5)
-        shuffle(round_winners)
-        for winner in round_winners:
-            result.append(winner)
+
+        sorted_winners = {k: v for k, v in sorted(round_winners.items(), key=lambda x: x[1], reverse=True)}
+        for winner, value in sorted_winners.items():
+            result.append([winner, value])
         if len(result) == len(racers.keys()):
             break
     await race_result(message)
@@ -85,7 +108,7 @@ async def on_message(message):
         if len(racers.keys()) == 0:
             await message.channel.send('There are no racers lined up')
         for key, item in racers.items():
-            say += f"{key}'s racer is {item[0]}\n"
+            say += f"{item[0]}: {key}\n"
         await message.channel.send(say)
 
     if message.content.startswith('!crimracing reset') and str(message.author) == config['organizer']:
