@@ -1,5 +1,6 @@
 import discord
 import random
+import json
 from random import shuffle
 from time import sleep
 
@@ -15,6 +16,16 @@ racers = {}
 lock = False
 result = []
 distance = 100
+config = {
+    'token': '',
+    'racemaster': ''
+}
+
+with open('token.json') as f:
+    configs = json.load(f)
+    config['racemaster'] = configs['racemaster']
+    config['token'] = configs['token']
+    print(config['racemaster'])
 
 
 async def race_result(message):
@@ -25,7 +36,6 @@ async def race_result(message):
 
 
 async def race_loop(message):
-    winner = None
     await message.channel.send('ON YOUR MARKS')
     sleep(.5)
     await message.channel.send('GET SET')
@@ -60,6 +70,8 @@ async def on_message(message):
     if message.author == client.user:
         return
 
+    print(str(message.author))
+
     if message.content.startswith('$hello'):
         await message.channel.send('Hello {author}!'.format(author=message.author))
 
@@ -77,15 +89,16 @@ async def on_message(message):
             say += f"{key}'s racer is {item[0]}\n"
         await message.channel.send(say)
 
-    if message.content.startswith('!crimracing reset') and message.author == 'atastydanish#9181':
+    if message.content.startswith('!crimracing reset') and str(message.author) == config['racemaster']:
         racers.clear()
         result.clear()
         await message.channel.send('I have cleared the racers and the results')
 
-    if message.content.startswith('!crimracing start') and message.author == 'atastydanish#9181':
+    if message.content.startswith('!crimracing start') and str(message.author) == config['racemaster']:
         await race_loop(message)
 
     if message.content.startswith('!crimracing result'):
         await race_result(message)
 
-client.run('ODIxMTc1NDIyMzU0OTgwODY1.YE_5NQ.-ok53z2KsYBRXTrP5oQT8VzHmfI')
+
+client.run(config['token'])
