@@ -44,14 +44,11 @@ async def race_loop(message):
         out = f'\n╔{"═" * distance}|\n'
         round_winners = []
         for key, item in racers.items():
-            # out += f"╟{'─' * item[1]}{item[0]}{'─' * (distance - item[1])}"
             out += f"╟{'─' * item[1]}{item[0]}\n"
             if item[1] >= distance:
                 if key not in result:
                     round_winners.append(key)
-                # out += '\n'
             else:
-                # out += '|\n'
                 item[1] += random.randint(1, 5)
                 if item[1] >= distance:
                     item[1] = distance
@@ -70,9 +67,6 @@ async def race_loop(message):
 async def on_message(message):
     if message.author == client.user:
         return
-
-    if message.content.startswith('$hello'):
-        await message.channel.send('Hello {author}!'.format(author=message.author))
 
     if message.content.startswith('!crimracing add'):
         split = message.content.split(' ')[2]
