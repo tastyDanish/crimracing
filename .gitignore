@@ -1,3 +1,5 @@
 venv 
 .idea
 token.json
+__pycache__
+old.py

@@ -1,29 +1,41 @@
 import discord
-import random
-import json
-from random import shuffle
+from discord.ext import commands
+from gamesets import Fair, Crits, EmoteRace, race_loop
 from time import sleep
+import json
 
-client = discord.Client()
-
-
-@client.event
-async def on_ready():
-    print('We have logged in as {0.user}'.format(client))
+description = '''Have a wacky race with Crim'''
+intents = discord.Intents.default()
+bot = commands.Bot(command_prefix='!crimracing ', description=description, intents=intents)
 
 # key is the player, value[0] is the emoji and value[1] is the position
 racers = {}
 result = []
-distance = 80
 config = {
+    'distance': 80,
     'token': '',
-    'organizer': ''
+    'organizer': [],
+    'rules': Fair(),
+    'offset': 0,
+    'channel': 'wacky-races-debug'
+}
+
+rulebook = {
+    'fair': Fair(),
+    'crits': Crits(),
+    'emote': EmoteRace()
 }
 
 with open('token.json') as f:
     configs = json.load(f)
     config['organizer'] = configs['organizer']
     config['token'] = configs['token']
+    config['offset'] = configs['offset']
+    config['channel'] = configs['channel']
+
+
+def to_lower(arg):
+    return arg.lower()
 
 
 async def race_result(message):
@@ -33,104 +45,111 @@ async def race_result(message):
     await message.channel.send(winners)
 
 
-async def race_loop(message):
-    await message.channel.send('ON YOUR MARKS')
-    sleep(.5)
-    await message.channel.send('GET SET')
-    sleep(.5)
-    await message.channel.send('GO')
+@bot.event
+async def on_ready():
+    print('Logged in as')
+    print(bot.user.name)
+    print(bot.user.id)
+    print('------')
 
-    # create starting lineup
-    start = f'\n╔{"═" * distance}|\n'
+
+@bot.check
+def whitelist(ctx):
+    return ctx.message.channel.name == config['channel']
+
+
+@bot.command(description='Adds an emote to the race with yourself as the participant.')
+async def add(ctx, emote: str):
+    """Adds an emote to the race with yourself as the participant."""
+    if len(result) > 0 and len(result) == len(racers.keys()):
+        await ctx.send("Last race hasn't been removed from memory. \n"
+                       "Use '!crimracing reset' to clear everything or "
+                       "'!crimracing again' to race again")
+        return
+    if emote in racers.items():
+        await ctx.send(f'{emote} is already taken. Try another one')
+        return
+    player = ctx.message.author.name
+    racers[player] = [emote, 0]
+    await ctx.send(f'I have added {emote} for participant {player}')
+
+
+@bot.command(description='Adds an emote to the race with someone else as the participant.')
+async def force(ctx, emote: str, player: str):
+    """Adds an emote to the race with someone else as the participant."""
+    if emote in racers.items():
+        await ctx.send(f'{emote} is already taken. Try another one')
+        return
+    racers[player] = [emote, 0]
+    await ctx.send(f'I have added {racers[player][0]} for participant {player}')
+
+
+@bot.command(description='Describes the rules and players of the next race')
+async def describe(ctx):
+    """Describes the rules and players of the next race"""
+    say = f'current ruleset is: {config["rules"]}\n The racers are: \n'
+    if len(racers.keys()) == 0:
+        await ctx.send('There are no racers lined up')
     for key, item in racers.items():
-        start += f"╟{'─' * item[1]}{item[0]}\n"
-    start += f'╚{"═" * distance}|'
-    await message.channel.send(start)
-
-    while True:
-        out = f'\n╔{"═" * distance}|\n'
-        round_winners = {}
-        for key, item in racers.items():
-            crit_message = ''
-            # check if past the line
-            if item[1] >= distance:
-                if key not in [x[0] for x in result]:
-                    round_winners[key] = item[1]
-                item[1] = distance
-            else:
-                # calculate velocity
-                crit = random.randint(1, 20)
-                if crit == 1:
-                    crit_message = '*trips*'
-                elif crit == 20:
-                    crit_message = '*sudden burst of speed*'
-                    item[1] += 8
-                else:
-                    item[1] += random.randint(1, 5)
-
-            # create racer drawing
-            out += f"╟{'─' * item[1]}{item[0]}{crit_message}\n"
-
-        out += f'╚{"═" * distance}|'
-        await message.channel.send(out)
-        sleep(.5)
-
-        # sort the round winners by final distance. The winner is whoever made the farther distance
-        sorted_winners = {k: v for k, v in sorted(round_winners.items(), key=lambda x: x[1], reverse=True)}
-        for winner, value in sorted_winners.items():
-            result.append([winner, value])
-        if len(result) == len(racers.keys()):
-            break
-    await race_result(message)
+        say += f"{item[0]}: {key}\n"
+    await ctx.send(say)
 
 
-@client.event
-async def on_message(message):
-    if message.author == client.user:
+@bot.command(description='Resets the racers and the results.')
+async def reset(ctx):
+    """Resets the racers and the results."""
+    racers.clear()
+    result.clear()
+    await ctx.send('I have cleared the racers and the results')
+
+
+@bot.command(description='Starts the race!')
+async def start(ctx):
+    """Starts the race!"""
+    if len(result) == len(racers.keys()):
+        await ctx.send('Reset the race or run the again command to race again')
+        return
+    if len(racers.keys()) == 1:
+        await ctx.send("A race by yourself isn't that interesting. You should get someone to race with")
+        return
+    await race_loop(ctx, config, racers, result)
+    await race_result(ctx)
+
+
+@bot.command(description='Runs the race with the same emotes and participants.')
+async def again(ctx):
+    """Runs the race with the same emotes and participants."""
+    result.clear()
+    await race_loop(ctx, config, racers, result)
+
+
+@bot.command(description='Gets the different rules you can race with.')
+async def list_rules(ctx):
+    """Gets the list of rules and what they do"""
+    for key, item in rulebook.items():
+        await ctx.send(item)
+        await ctx.send('------------')
+
+
+@bot.command(description='Runs the race with the same emotes and participants.')
+async def rules(ctx, ruleset: to_lower):
+    """Runs the race with the same emotes and participants."""
+    if ruleset not in rulebook.keys():
+        await ctx.send(f"{ruleset} isn't in my set of rules")
+        say = 'Instead, you may use:\n'
+        for key, item in rulebook.items():
+            say += f'{item}\n'
+        await ctx.send(say)
         return
 
-    # add a racer to the race
-    if message.content.startswith('!crimracing add'):
-        split = message.content.split(' ')
-        if len(split) < 3:
-            await message.channel.send('I did not understand that add request')
-            return
-        emoji = message.content.split(' ')[2]
-        if emoji in racers.items():
-            await message.channel.send(f'{emoji} is already taken. Try another one')
-            return
-        racers[message.author] = [emoji, 0]
-        await message.channel.send(f'I have added {racers[message.author][0]} for participant {message.author}')
+    config['rules'] = rulebook[ruleset]
 
-    # show race participants
-    if message.content.startswith('!crimracing describe'):
-        say = ''
-        if len(racers.keys()) == 0:
-            await message.channel.send('There are no racers lined up')
-        for key, item in racers.items():
-            say += f"{item[0]}: {key}\n"
-        await message.channel.send(say)
+    if ruleset == 'emote':
+        await ctx.send(f'NOTE: emote only supports custom emotes. Not unicode allowed')
 
-    # reset the race
-    if message.content.startswith('!crimracing reset') and str(message.author) == config['organizer']:
-        racers.clear()
-        result.clear()
-        await message.channel.send('I have cleared the racers and the results')
-
-    # race again
-    if message.content.startswith('!crimracing again') and str(message.author) == config['organizer']:
-        result.clear()
-        await race_loop(message)
-
-    # start the race
-    if message.content.startswith('!crimracing start') and str(message.author) == config['organizer']:
-        if len(result) == len(racers.keys()):
-            await message.channel.send('Reset the race or run the again command to race again')
-        await race_loop(message)
-
-    # just get the results
-    if message.content.startswith('!crimracing result'):
-        await race_result(message)
+    racers.clear()
+    result.clear()
+    await ctx.send(f'ruleset updated to {ruleset} and memory has been reset')
 
 
-client.run(config['token'])
+bot.run(config['token'])
