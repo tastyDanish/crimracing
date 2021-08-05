@@ -17,7 +17,8 @@ config = {
     'organizer': [],
     'rules': Fair(),
     'offset': 0,
-    'channel': 'wacky-races-debug'
+    'channel': 'wacky-races-debug',
+    'commercial': False
 }
 
 rulebook = {
@@ -120,7 +121,10 @@ async def start(ctx):
 async def again(ctx):
     """Runs the race with the same emotes and participants."""
     result.clear()
+    for key, item in racers.items():
+        item[1] = 0
     await race_loop(ctx, config, racers, result)
+    await race_result(ctx)
 
 
 @bot.command(description='Gets the different rules you can race with.')
@@ -151,5 +155,33 @@ async def rules(ctx, ruleset: to_lower):
     result.clear()
     await ctx.send(f'ruleset updated to {ruleset} and memory has been reset')
 
+
+@bot.command(description='Get the results of the race')
+async def raceresult(ctx):
+    if len(result) > 0:
+        await race_result(ctx)
+    else:
+        await ctx.send('No race results to report')
+
+
+@bot.command(description="Run a commercial now")
+async def commercial(ctx):
+    await ctx.send('Watch Ballers® on HBO - a new season streaming now on HBO Max')
+    await ctx.send('https://giphy.com/gifs/hbo-ballers-new-season-2015-year-ender-1iTHRySV2JrO1qeY')
+
+
+@bot.command(description="Run a commercial during the race")
+async def commercial_race(ctx):
+    if not config['commercial']:
+        config['commercial'] = True
+        await ctx.send("Commercials are activated")
+    else:
+        config['commercial'] = False
+        await ctx.send("Commercials are deactivated")
+
+
+@bot.command()
+async def rig_race(ctx):
+    await ctx.send("I'm afraid I cannot let you do that")
 
 bot.run(config['token'])

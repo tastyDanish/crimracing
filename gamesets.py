@@ -43,6 +43,26 @@ class EmoteRace(Ruleset):
                'out by racing'
 
 
+async def do_commercial(ctx):
+    await ctx.send('WE INTTERUPT THIS BROADCAST FOR A MESSAGE FROM OUR SPONSORS')
+    await ctx.send('...')
+    sleep(0.5)
+    await ctx.send('Dont tell anyone, but Dwayne Johnson is back as Spencer Stasmore ready to ball out with some ballers')
+    await ctx.send('https://giphy.com/gifs/hbo-l1CC5T7JDUfU62uTC')
+    sleep(0.5)
+    await ctx.send('Another season of FOOTBALL and FAMILY')
+    await ctx.send('https://giphy.com/gifs/hbo-spencer-ballers-2015-year-ender-d2Zh8bX4ETA2l49a')
+    sleep(0.5)
+    await ctx.send('Spencer is ready to put his money back to work even more so than ever in this new exciting season')
+    await ctx.send('https://giphy.com/gifs/hbo-l1CC67iU5rs0dw2f6')
+    sleep(0.5)
+    await ctx.send('Watch Ballers® on HBO - a new season streaming now on HBO Max')
+    await ctx.send('https://giphy.com/gifs/hbo-ballers-new-season-2015-year-ender-1iTHRySV2JrO1qeY')
+    sleep(0.5)
+    await ctx.send('And now - back to the race')
+    await ctx.send('...')
+
+
 async def race_loop(ctx, config, racers, result):
     await ctx.send('ON YOUR MARKS')
     sleep(.5)
@@ -53,11 +73,15 @@ async def race_loop(ctx, config, racers, result):
     # create starting lineup
     start = f'\n╔{"═" * config["distance"]}|\n'
     for key, item in racers.items():
-        start += f"╟{'─' * item[1]}{item[0]}\n"
+        start += f"╟{item[0]}\n"
     start += f'╚{"═" * config["distance"]}|'
     await ctx.send(start)
 
+    i = 0
     while True:
+        if config['commercial'] and i == 10:
+            await do_commercial(ctx)
+        i += 1
         out = f'\n╔{"═" * config["distance"]}|\n'
         round_winners = {}
         for key, item in racers.items():
