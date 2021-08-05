@@ -17,10 +17,10 @@ class Fair(Ruleset):
 
 class Crits(Ruleset):
     def run(self, emote, config):
-        crit = random.randint(1, 20)
+        crit = random.randint(1, 50)
         if crit == 1:
             return 0, '*trips*'
-        elif crit == 20:
+        elif crit == 50:
             return 8, '*sudden burst of speed*'
         else:
             return random.randint(1, 5), ''
