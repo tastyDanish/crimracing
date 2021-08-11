@@ -183,5 +183,6 @@ async def commercial_race(ctx):
 @bot.command()
 async def rig_race(ctx):
     await ctx.send("I'm afraid I cannot let you do that")
+    await ctx.send("I will tell peter you did this")
 
 bot.run(config['token'])
